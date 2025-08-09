@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MCP Server Deployment Flow - UX Reference</title>
+  <style>
+    /* 
+    =================================================================
+    UX REFERENCE: MCP Server Deployment Flow
+    =================================================================
+    This is a consolidated view of the 3-step deployment process:
+    1. Connect API - authentication and connection setup
+    2. Select & Shape Endpoints - import/configure API endpoints  
+    3. Deploy Server - final configuration and deployment
+    
+    Design principles applied:
+    - Progressive disclosure to reduce cognitive load
+    - Smart defaults and auto-detection
+    - Clear visual hierarchy and step progression
+    - Minimal required fields with optional advanced settings
+    - Consistent design system and interaction patterns
+    =================================================================
+    */
+
+    /* Design System - Consistent Variables */
+    :root { 
+      --bg: #fff; 
+      --ink: #161616; 
+      --muted: #6b7280; 
+      --line: #e5e7eb; 
+      --surface: #f3f4f6; 
+      --accent: #111; 
+      --success: #059669;
+      --warning: #d97706;
+    }
+
+    /* Base Styles */
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+      color: var(--ink); 
+      background: var(--bg); 
+      line-height: 1.5;
+    }
+
+    /* Layout */
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    .step { display: none; }
+    .step.active { display: block; animation: fadeIn 0.4s ease-in; }
+    
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(20px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+
+    /* Typography */
+    h1 { font-size: 28px; margin: 0 0 20px; font-weight: 700; }
+    h2 { font-size: 20px; margin: 20px 0 12px; font-weight: 600; }
+    h3 { font-size: 16px; margin: 16px 0 8px; font-weight: 600; }
+
+    /* Progress Indicator */
+    .progress { 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      margin: 24px 0 32px; 
+      padding: 20px; 
+      background: var(--surface); 
+      border-radius: 12px; 
+    }
+    .progress-step { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 50%; 
+      background: var(--line); 
+      color: var(--muted); 
+      font-size: 16px; 
+      font-weight: 600; 
+      transition: all 0.3s ease;
+    }
+    .progress-step.active { background: var(--accent); color: #fff; }
+    .progress-step.complete { background: var(--success); color: #fff; }
+    .progress-line { 
+      flex: 1; 
+      height: 3px; 
+      background: var(--line); 
+      border-radius: 2px; 
+      transition: all 0.3s ease;
+    }
+    .progress-line.complete { background: var(--success); }
+    .progress-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* Form Elements */
+    .field { margin: 16px 0 20px; }
+    .label { display: block; font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    
+    input[type="text"], input[type="url"], input[type="number"], input[type="file"], 
+    input[type="password"], select, textarea {
+      width: 100%; 
+      padding: 10px 12px; 
+      border: 1px solid var(--line); 
+      border-radius: 8px; 
+      background: #fff; 
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    textarea { 
+      min-height: 80px; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
+      resize: vertical;
+    }
+
+    /* Sections and Cards */
+    .section { 
+      border: 1px solid var(--line); 
+      border-radius: 12px; 
+      padding: 24px; 
+      background: #fff; 
+      margin-bottom: 20px; 
+    }
+    .note { 
+      padding: 12px 16px; 
+      background: var(--surface); 
+      border-radius: 10px; 
+      font-size: 14px; 
+      color: var(--muted); 
+    }
+    .callout { 
+      padding: 16px; 
+      background: #f0f9ff; 
+      border: 1px solid #0ea5e9; 
+      border-radius: 10px; 
+      margin: 16px 0; 
+    }
+    .callout-success { background: #f0fdf4; border-color: var(--success); }
+
+    /* Buttons */
+    .btn { 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px;
+      padding: 12px 20px; 
+      border-radius: 8px; 
+      background: var(--accent); 
+      color: #fff; 
+      border: none; 
+      cursor: pointer; 
+      font-weight: 600; 
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: #333; }
+    .btn-secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    .btn-secondary:hover { background: var(--surface); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #047857; }
+    .btn-link { 
+      background: none; 
+      border: none; 
+      color: var(--accent); 
+      text-decoration: underline; 
+      cursor: pointer; 
+      padding: 0; 
+      font-size: 14px; 
+    }
+
+    /* Navigation */
+    .navigation { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-top: 32px; 
+      padding-top: 20px; 
+      border-top: 1px solid var(--line); 
+    }
+
+    /* Auth Tabs */
+    .tabs { 
+      display: flex; 
+      gap: 2px; 
+      background: var(--surface); 
+      border-radius: 10px; 
+      padding: 4px; 
+      width: max-content; 
+    }
+    .tab { 
+      padding: 8px 16px; 
+      border-radius: 8px; 
+      font-size: 14px; 
+      cursor: pointer; 
+      user-select: none; 
+      transition: all 0.2s ease;
+    }
+    .tab[aria-selected="true"] { background: #fff; border: 1px solid var(--line); }
+    .panel { 
+      display: none; 
+      padding: 16px; 
+      border: 1px solid var(--line); 
+      border-radius: 10px; 
+      background: #fff; 
+      margin-top: 12px; 
+    }
+    .panel.active { display: block; }
+
+    /* Key-Value Table */
+    .kv { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .kv th, .kv td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; }
+    .kv th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface); }
+
+    /* Import Options */
+    .import-options { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 20px; 
+      margin: 20px 0; 
+    }
+    .import-card { 
+      border: 2px dashed var(--line); 
+      border-radius: 12px; 
+      padding: 24px; 
+      text-align: center; 
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+    }
+    .import-card:hover { border-color: var(--accent); background: var(--surface); }
+    .import-card.selected { border-color: var(--accent); border-style: solid; background: #f8fafc; }
+    .import-card h3 { margin: 0 0 8px; font-size: 16px; }
+    .import-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    /* Endpoint Lists */
+    .endpoint-list { margin: 16px 0; }
+    .endpoint-item { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      padding: 12px; 
+      border: 1px solid var(--line); 
+      border-radius: 8px; 
+      margin-bottom: 8px; 
+      background: #fff; 
+      transition: background 0.2s ease;
+    }
+    .endpoint-item:hover { background: var(--surface); }
+    .endpoint-method { 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      font-size: 11px; 
+      font-weight: 600; 
+      text-transform: uppercase; 
+      min-width: 48px; 
+      text-align: center; 
+    }
+    .method-get { background: #dbeafe; color: #1e40af; }
+    .method-post { background: #dcfce7; color: #166534; }
+    .method-put { background: #fef3c7; color: #92400e; }
+    .method-delete { background: #fecaca; color: #dc2626; }
+    .endpoint-path { 
+      flex: 1; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
+      font-size: 13px; 
+    }
+
+    /* Pills */
+    .pill { 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 8px; 
+      padding: 8px 12px; 
+      border: 1px solid var(--line); 
+      border-radius: 999px; 
+      font-size: 12px; 
+      margin: 4px 6px 0 0; 
+      background: #fff;
+    }
+    .pill input { width: auto; }
+
+    /* Code/Preview Boxes */
+    .codebox, .preview-box { 
+      width: 100%; 
+      min-height: 120px; 
+      padding: 12px; 
+      border: 1px solid var(--line); 
+      border-radius: 8px; 
+      background: #0a0a0a; 
+      color: #e5e7eb; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
+      font-size: 12px; 
+    }
+
+    /* Deployment Section */
+    .deploy-section { 
+      text-align: center; 
+      padding: 32px 24px; 
+      background: #f8fafc; 
+      border-radius: 12px; 
+      margin-top: 24px; 
+    }
+    .deploy-section h2 { margin: 0 0 8px; }
+    .deploy-section p { margin: 0 0 24px; color: var(--muted); }
+
+    /* Utility Classes */
+    .hidden { display: none !important; }
+    .right { margin-left: auto; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .import-options { grid-template-columns: 1fr; }
+      .row { flex-direction: column; align-items: stretch; }
+      .navigation { flex-direction: column; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- UX Reference Header -->
+    <div style="background: var(--surface); padding: 16px 20px; border-radius: 12px; margin-bottom: 24px;">
+      <h1 style="margin: 0 0 8px; font-size: 24px;">MCP Server Deployment Flow</h1>
+      <p style="margin: 0; color: var(--muted);">
+        <strong>UX Reference:</strong> This consolidated flow shows the complete 3-step process for converting API endpoints into MCP servers. 
+        Design emphasizes simplicity, progressive disclosure, and smart defaults to minimize cognitive load.
+      </p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress">
+      <div>
+        <div class="progress-step active" id="step1-indicator">1</div>
+        <div class="progress-label">Connect API</div>
+      </div>
+      <div class="progress-line" id="line1"></div>
+      <div>
+        <div class="progress-step" id="step2-indicator">2</div>
+        <div class="progress-label">Select Endpoints</div>
+      </div>
+      <div class="progress-line" id="line2"></div>
+      <div>
+        <div class="progress-step" id="step3-indicator">3</div>
+        <div class="progress-label">Deploy Server</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Connect API -->
+    <div id="step1" class="step active">
+      <h1>Connect API</h1>
+      <div class="note">enter your api details and test the connection. we'll use these settings for all endpoint calls.</div>
+
+      <!-- API Base URL -->
+      <div class="section">
+        <div class="field">
+          <label class="label" for="apiBaseUrl">API Base URL</label>
+          <input id="apiBaseUrl" type="url" placeholder="https://my-api.com/api/v1/" />
+          <div class="hint">enter the root url your endpoints share.</div>
+        </div>
+
+        <!-- Auth Type Tabs -->
+        <div class="field">
+          <span class="label">Authentication</span>
+          <div class="tabs" role="tablist" aria-label="auth type">
+            <div class="tab" role="tab" aria-selected="true" data-panel="auth-none">No Auth</div>
+            <div class="tab" role="tab" aria-selected="false" data-panel="auth-apikey">API Key</div>
+            <div class="tab" role="tab" aria-selected="false" data-panel="auth-basic">Basic</div>
+            <div class="tab" role="tab" aria-selected="false" data-panel="auth-oauth2">OAuth2</div>
+          </div>
+
+          <!-- Auth Panels -->
+          <div id="auth-none" class="panel active">
+            <div class="note">the api is public and has no security requirements.</div>
+          </div>
+
+          <div id="auth-apikey" class="panel">
+            <div class="row">
+              <div style="flex:1">
+                <label class="label" for="apiKeyValue">API Key</label>
+                <input id="apiKeyValue" type="text" placeholder="sk_live_xxx" />
+              </div>
+              <div style="width:180px">
+                <label class="label" for="apiKeyLocation">Location</label>
+                <select id="apiKeyLocation">
+                  <option value="header" selected>Header</option>
+                  <option value="query">Query param</option>
+                </select>
+              </div>
+              <div style="width:180px">
+                <label class="label" for="apiKeyName">Header/Param Name</label>
+                <input id="apiKeyName" type="text" placeholder="x-api-key" />
+              </div>
+            </div>
+            <div class="hint">we'll inject this into every request automatically.</div>
+          </div>
+
+          <div id="auth-basic" class="panel">
+            <div class="row">
+              <div style="flex:1">
+                <label class="label" for="basicUser">Username</label>
+                <input id="basicUser" type="text" placeholder="username" />
+              </div>
+              <div style="flex:1">
+                <label class="label" for="basicPass">Password</label>
+                <input id="basicPass" type="password" placeholder="••••••••" />
+              </div>
+            </div>
+            <div class="hint">sent via authorization: basic header.</div>
+          </div>
+
+          <div id="auth-oauth2" class="panel">
+            <div class="row">
+              <div style="flex:1">
+                <label class="label" for="oauthClientId">Client ID</label>
+                <input id="oauthClientId" type="text" placeholder="client_id" />
+              </div>
+              <div style="flex:1">
+                <label class="label" for="oauthClientSecret">Client Secret</label>
+                <input id="oauthClientSecret" type="password" placeholder="client_secret" />
+              </div>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <div style="flex:1">
+                <label class="label" for="oauthTokenUrl">Token URL</label>
+                <input id="oauthTokenUrl" type="url" placeholder="https://auth.example.com/oauth/token" />
+              </div>
+              <div style="width:200px">
+                <label class="label" for="oauthFlow">Flow</label>
+                <select id="oauthFlow">
+                  <option value="client_credentials" selected>Client Credentials</option>
+                  <option value="authorization_code">Authorization Code</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="label" for="oauthScopes">Scopes (optional)</label>
+              <input id="oauthScopes" type="text" placeholder="read write" />
+            </div>
+            <div class="hint">we'll fetch and cache bearer tokens automatically.</div>
+          </div>
+        </div>
+
+        <!-- Default Headers -->
+        <div class="field">
+          <span class="label">Default Headers (optional)</span>
+          <table class="kv" id="headersTable">
+            <thead>
+              <tr><th style="width:45%">name</th><th style="width:45%">value</th><th style="width:10%"></th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="text" placeholder="accept" /></td>
+                <td><input type="text" placeholder="application/json" /></td>
+                <td><button type="button" class="btn-secondary" onclick="removeHeaderRow(this)">Remove</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn-secondary" onclick="addHeaderRow()" style="margin-top: 8px;">Add Header</button>
+          <div class="hint">applied to all requests unless overridden by specific endpoints.</div>
+        </div>
+
+        <!-- Test Connection -->
+        <div class="field">
+          <span class="label">Test Connection</span>
+          <div class="row">
+            <select id="testMethod" style="width:120px">
+              <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+            </select>
+            <input id="testPath" type="text" placeholder="/health or /users" style="flex:1" />
+            <button type="button" class="btn" onclick="testConnection()">Test</button>
+          </div>
+          <div class="hint">verify your settings work with a quick test call.</div>
+          <pre id="testOutput" class="codebox" style="margin-top: 12px;">// test results will appear here</pre>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="navigation">
+        <div></div>
+        <button class="btn" onclick="goToStep(2)">Continue to Endpoints →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Select & Shape Endpoints -->
+    <div id="step2" class="step">
+      <h1>Select & Shape Endpoints</h1>
+      <div class="note">choose how to import your api endpoints. we'll auto-configure most settings for you.</div>
+
+      <!-- Import Method Selection -->
+      <div class="section">
+        <h2>How would you like to add endpoints?</h2>
+        <div class="import-options">
+          <div class="import-card" id="openapi-option" onclick="selectImportMethod('openapi')">
+            <h3>📄 OpenAPI Spec</h3>
+            <p>upload your openapi/swagger file and we'll auto-import all endpoints with full configuration</p>
+          </div>
+          <div class="import-card" id="manual-option" onclick="selectImportMethod('manual')">
+            <h3>✏️ Manual Entry</h3>
+            <p>add endpoints one by one with custom configuration</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- OpenAPI Import Section -->
+      <div id="openapi-section" class="section hidden">
+        <h2>Upload OpenAPI Specification</h2>
+        <div class="field">
+          <label class="label" for="openapi-file">Select OpenAPI/Swagger file</label>
+          <input id="openapi-file" type="file" accept=".json,.yaml,.yml" />
+          <div class="hint">supports openapi 3.x and swagger 2.x in json or yaml format</div>
+        </div>
+        
+        <div class="row" style="margin-top: 16px;">
+          <button class="btn" onclick="processOpenAPI()">Import Endpoints</button>
+          <button class="btn-secondary" onclick="showSampleSpec()">Show Sample Format</button>
+        </div>
+
+        <div id="sample-spec" class="hidden" style="margin-top: 16px;">
+          <div class="label">Sample OpenAPI format:</div>
+          <textarea readonly class="preview-box" style="background: var(--surface); color: var(--ink); margin-top: 8px;">{
+  "openapi": "3.0.0",
+  "info": { "title": "My API", "version": "1.0.0" },
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "List users",
+        "parameters": [
+          {"name": "limit", "in": "query", "schema": {"type": "integer"}}
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "summary": "Get user",
+        "parameters": [
+          {"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}
+        ]
+      }
+    }
+  }
+}</textarea>
+        </div>
+      </div>
+
+      <!-- Manual Entry Section -->
+      <div id="manual-section" class="section hidden">
+        <h2>Add Endpoints Manually</h2>
+        <div class="row">
+          <select id="method" style="width: 120px;">
+            <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+          </select>
+          <input id="path" type="text" placeholder="/users or /users/{id}" style="flex: 1;" />
+          <input id="name" type="text" placeholder="endpoint name" style="width: 200px;" />
+          <button class="btn" onclick="addEndpoint()">Add</button>
+        </div>
+        <div class="hint">we'll auto-detect path parameters like {id} and suggest common query parameters</div>
+      </div>
+
+      <!-- Endpoints List -->
+      <div id="endpoints-section" class="section hidden">
+        <div class="row" style="margin-bottom: 16px;">
+          <h2 style="margin: 0;">Detected Endpoints</h2>
+          <button class="btn-secondary" onclick="testAllEndpoints()">Test All</button>
+        </div>
+        
+        <div id="endpoints-list" class="endpoint-list">
+          <!-- endpoints will be populated here -->
+        </div>
+
+        <div class="callout hidden" id="test-results">
+          <strong>Test Results:</strong>
+          <pre id="test-output" class="preview-box" style="margin-top: 8px;">// test results will appear here</pre>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="navigation">
+        <button class="btn-secondary" onclick="goToStep(1)">← Back to API Connection</button>
+        <button class="btn" onclick="goToStep(3)" id="continueBtn" disabled>Continue to Deployment →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Deploy Server -->
+    <div id="step3" class="step">
+      <h1>Deploy Your MCP Server</h1>
+      <div class="note">almost done! give your server a name and we'll handle the rest.</div>
+
+      <!-- Essential Configuration -->
+      <div class="section">
+        <!-- Server Name -->
+        <div class="field">
+          <label class="label" for="srvName">Server Name</label>
+          <input id="srvName" type="text" placeholder="my-api-server" />
+          <div class="hint">this will be used to identify your mcp server</div>
+        </div>
+
+        <!-- Endpoints Summary -->
+        <div class="field">
+          <label class="label">Selected Endpoints</label>
+          <div id="toolsList" class="note">loading endpoints from previous step...</div>
+          <button class="btn-link" onclick="toggleEndpointDetails()">
+            <span id="endpoints-toggle">show details</span>
+          </button>
+          
+          <!-- Detailed endpoint list (hidden by default) -->
+          <div id="endpoints-details" class="hidden" style="margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line);">
+            <div class="hint" style="margin-bottom: 8px;">uncheck any endpoints you don't want to include:</div>
+            <div id="endpoints-checkboxes">
+              <!-- will be populated by js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional Description -->
+        <div class="field">
+          <label class="label" for="srvDesc">Description (optional)</label>
+          <input id="srvDesc" type="text" placeholder="mcp server for my api" />
+          <div class="hint">helps identify what this server does</div>
+        </div>
+
+        <!-- Advanced Settings Toggle -->
+        <div style="margin-top: 20px;">
+          <button class="btn-link" onclick="toggleAdvanced()">
+            <span id="advanced-toggle">⚙️ show advanced settings</span>
+          </button>
+          
+          <div id="advanced-settings" class="hidden" style="margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line);">
+            <div class="field">
+              <label class="label" for="allowlist">Allowed Domains (optional)</label>
+              <input id="allowlist" type="text" placeholder="api.example.com, uploads.example.com" />
+              <div class="hint">comma-separated list of domains this server can access</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deploy Section -->
+      <div class="deploy-section">
+        <h2>Ready to Deploy</h2>
+        <p>we'll build, configure, and deploy your mcp server automatically.<br>this usually takes 2-3 minutes.</p>
+        
+        <div class="row" style="justify-content: center; gap: 16px;">
+          <button class="btn-secondary" onclick="previewConfig()">Preview Configuration</button>
+          <button class="btn-success" onclick="deployServer()">🚀 Deploy MCP Server</button>
+        </div>
+
+        <!-- Preview Output -->
+        <div id="preview-section" class="hidden" style="margin-top: 20px;">
+          <div class="label" style="text-align: left; margin-bottom: 8px;">Configuration Preview:</div>
+          <pre id="preview-output" class="preview-box">// configuration will appear here</pre>
+        </div>
+
+        <!-- Deployment Status -->
+        <div id="deploy-status" class="hidden" style="margin-top: 20px;">
+          <div id="status-message" class="note">deploying your server...</div>
+          <pre id="deploy-output" class="preview-box" style="margin-top: 8px;">// deployment logs will appear here</pre>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="navigation">
+        <button class="btn-secondary" onclick="goToStep(2)">← Back to Endpoints</button>
+        <div class="note" style="margin: 0;">deployment will start when you click the deploy button above</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Application State
+    let currentStep = 1;
+    let selectedAuthType = 'none';
+    let selectedImportMethod = null;
+    let endpoints = [];
+    let showingAdvanced = false;
+    let showingEndpointDetails = false;
+
+    // Utility Functions
+    const $ = (id) => document.getElementById(id);
+    const val = (id) => ($(id)?.value || '').trim();
+
+    // Step Navigation
+    function goToStep(step) {
+      // Hide current step
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      
+      // Show target step
+      $(`step${step}`).classList.add('active');
+      
+      // Update progress
+      updateProgress(step);
+      
+      currentStep = step;
+
+      // Handle step-specific logic
+      if (step === 3) {
+        renderEndpointsSummary();
+      }
+    }
+
+    function updateProgress(activeStep) {
+      for (let i = 1; i <= 3; i++) {
+        const indicator = $(`step${i}-indicator`);
+        const line = $(`line${i}`);
+        
+        if (i < activeStep) {
+          indicator.className = 'progress-step complete';
+          if (line) line.className = 'progress-line complete';
+        } else if (i === activeStep) {
+          indicator.className = 'progress-step active';
+          if (line) line.className = 'progress-line';
+        } else {
+          indicator.className = 'progress-step';
+          if (line) line.className = 'progress-line';
+        }
+      }
+    }
+
+    // Step 1: Auth Tab Handling
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        selectedAuthType = tab.dataset.panel.replace('auth-', '');
+        
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+        tab.setAttribute('aria-selected', 'true');
+        
+        // Update panels
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        $(tab.dataset.panel).classList.add('active');
+      });
+    });
+
+    // Step 1: Headers Management
+    function addHeaderRow() {
+      const tbody = $('headersTable').querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" placeholder="header name" /></td>
+        <td><input type="text" placeholder="value" /></td>
+        <td><button type="button" class="btn-secondary" onclick="removeHeaderRow(this)">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function removeHeaderRow(btn) {
+      btn.closest('tr').remove();
+    }
+
+    // Step 1: Test Connection
+    function testConnection() {
+      const base = val('apiBaseUrl').replace(/\/+$/, '');
+      const path = val('testPath').trim();
+      const method = val('testMethod');
+      const url = base && path ? base + (path.startsWith('/') ? path : '/' + path) : '(missing url)';
+      
+      const result = {
+        method,
+        url,
+        auth: selectedAuthType,
+        status: 'demo - would make real request in production',
+        note: 'this is a demo response. in production, this would test the actual connection.'
+      };
+      
+      $('testOutput').textContent = JSON.stringify(result, null, 2);
+    }
+
+    // Step 2: Import Method Selection
+    function selectImportMethod(method) {
+      selectedImportMethod = method;
+      
+      // Update UI
+      document.querySelectorAll('.import-card').forEach(card => card.classList.remove('selected'));
+      $(`${method}-option`).classList.add('selected');
+      
+      // Show relevant section
+      $('openapi-section').classList.toggle('hidden', method !== 'openapi');
+      $('manual-section').classList.toggle('hidden', method !== 'manual');
+      
+      if (method === 'openapi') {
+        $('openapi-section').classList.add('fade-in');
+      } else {
+        $('manual-section').classList.add('fade-in');
+      }
+    }
+
+    // Step 2: OpenAPI Functions
+    function showSampleSpec() {
+      $('sample-spec').classList.toggle('hidden');
+    }
+
+    function processOpenAPI() {
+      const fileInput = $('openapi-file');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('please select a file first');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const content = e.target.result;
+          const spec = JSON.parse(content);
+          endpoints = extractEndpointsFromSpec(spec);
+          showEndpointsList();
+        } catch (error) {
+          alert('failed to parse openapi file: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function extractEndpointsFromSpec(spec) {
+      const extracted = [];
+      const paths = spec.paths || {};
+      
+      Object.keys(paths).forEach(path => {
+        const pathObj = paths[path];
+        Object.keys(pathObj).forEach(method => {
+          if (['get', 'post', 'put', 'patch', 'delete'].includes(method.toLowerCase())) {
+            const operation = pathObj[method];
+            extracted.push({
+              name: operation.operationId || generateEndpointName(method, path),
+              method: method.toUpperCase(),
+              path: path,
+              description: operation.summary || operation.description || '',
+              enabled: true
+            });
+          }
+        });
+      });
+      
+      return extracted;
+    }
+
+    // Step 2: Manual Entry
+    function addEndpoint() {
+      const method = val('method');
+      const path = val('path');
+      const name = val('name');
+      
+      if (!path) {
+        alert('endpoint path is required');
+        return;
+      }
+      
+      endpoints.push({
+        name: name || generateEndpointName(method, path),
+        method: method,
+        path: path,
+        description: '',
+        enabled: true
+      });
+      
+      // Clear form
+      $('path').value = '';
+      $('name').value = '';
+      
+      showEndpointsList();
+    }
+
+    function generateEndpointName(method, path) {
+      const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '_').replace(/^_+|_+$/g, '');
+      return `${method.toLowerCase()}_${cleanPath || 'root'}`;
+    }
+
+    // Step 2: Endpoints List
+    function showEndpointsList() {
+      const section = $('endpoints-section');
+      const list = $('endpoints-list');
+      
+      if (endpoints.length === 0) {
+        section.classList.add('hidden');
+        return;
+      }
+      
+      section.classList.remove('hidden');
+      section.classList.add('fade-in');
+      
+      list.innerHTML = '';
+      endpoints.forEach((endpoint, index) => {
+        const item = document.createElement('div');
+        item.className = 'endpoint-item';
+        item.innerHTML = `
+          <input type="checkbox" ${endpoint.enabled ? 'checked' : ''} onchange="toggleEndpoint(${index})" />
+          <span class="endpoint-method method-${endpoint.method.toLowerCase()}">${endpoint.method}</span>
+          <span class="endpoint-path">${endpoint.path}</span>
+          <span style="flex: 1; color: var(--muted); font-size: 12px;">${endpoint.description}</span>
+        `;
+        list.appendChild(item);
+      });
+
+      // Enable continue button
+      $('continueBtn').disabled = false;
+    }
+
+    function toggleEndpoint(index) {
+      endpoints[index].enabled = !endpoints[index].enabled;
+    }
+
+    function testAllEndpoints() {
+      const results = $('test-results');
+      const output = $('test-output');
+      
+      results.classList.remove('hidden');
+      
+      const enabledEndpoints = endpoints.filter(e => e.enabled);
+      const testResults = {
+        total: enabledEndpoints.length,
+        tested: enabledEndpoints.length,
+        passed: Math.floor(enabledEndpoints.length * 0.8),
+        endpoints: enabledEndpoints.map(e => ({
+          name: e.name,
+          method: e.method,
+          path: e.path,
+          status: Math.random() > 0.2 ? 'pass' : 'fail'
+        }))
+      };
+      
+      output.textContent = JSON.stringify(testResults, null, 2);
+    }
+
+    // Step 3: Functions
+    function renderEndpointsSummary() {
+      const list = $('toolsList');
+      if (!endpoints.length) {
+        list.textContent = 'no endpoints configured';
+        return;
+      }
+
+      const enabledCount = endpoints.filter(e => e.enabled).length;
+      const summary = `${enabledCount} endpoint${enabledCount !== 1 ? 's' : ''} selected`;
+      
+      const firstFew = endpoints.filter(e => e.enabled).slice(0, 3);
+      const names = firstFew.map(e => e.name).join(', ');
+      const more = enabledCount > 3 ? ` and ${enabledCount - 3} more` : '';
+      
+      list.innerHTML = `<strong>${summary}:</strong> ${names}${more}`;
+    }
+
+    function toggleEndpointDetails() {
+      showingEndpointDetails = !showingEndpointDetails;
+      const details = $('endpoints-details');
+      const toggle = $('endpoints-toggle');
+      
+      if (showingEndpointDetails) {
+        details.classList.remove('hidden');
+        details.classList.add('fade-in');
+        toggle.textContent = 'hide details';
+        renderEndpointCheckboxes();
+      } else {
+        details.classList.add('hidden');
+        toggle.textContent = 'show details';
+      }
+    }
+
+    function renderEndpointCheckboxes() {
+      const container = $('endpoints-checkboxes');
+      container.innerHTML = '';
+      
+      endpoints.forEach((ep, idx) => {
+        const label = document.createElement('label');
+        label.className = 'pill';
+        label.innerHTML = `
+          <input type="checkbox" ${ep.enabled ? 'checked' : ''} onchange="toggleEndpointInStep3(${idx})" />
+          <span>${ep.name}</span>
+          <small style="color:var(--muted)">${ep.method} ${ep.path}</small>
+        `;
+        container.appendChild(label);
+      });
+    }
+
+    function toggleEndpointInStep3(index) {
+      endpoints[index].enabled = !endpoints[index].enabled;
+      renderEndpointsSummary();
+    }
+
+    function toggleAdvanced() {
+      showingAdvanced = !showingAdvanced;
+      const settings = $('advanced-settings');
+      const toggle = $('advanced-toggle');
+      
+      if (showingAdvanced) {
+        settings.classList.remove('hidden');
+        settings.classList.add('fade-in');
+        toggle.textContent = '⚙️ hide advanced settings';
+      } else {
+        settings.classList.add('hidden');
+        toggle.textContent = '⚙️ show advanced settings';
+      }
+    }
+
+    function buildConfig() {
+      const selectedEndpoints = endpoints.filter(e => e.enabled);
+      
+      if (selectedEndpoints.length === 0) {
+        throw new Error('please select at least one endpoint');
+      }
+
+      if (!val('srvName')) {
+        throw new Error('server name is required');
+      }
+
+      return {
+        server: {
+          name: val('srvName'),
+          description: val('srvDesc') || `mcp server with ${selectedEndpoints.length} endpoints`
+        },
+        endpoints: selectedEndpoints.map(e => ({
+          name: e.name,
+          method: e.method,
+          path: e.path,
+          description: e.description || ''
+        })),
+        security: {
+          allowedDomains: val('allowlist') ? val('allowlist').split(',').map(s => s.trim()).filter(Boolean) : [],
+          authConfigurationNote: 'authentication settings inherited from step 1'
+        },
+        deploymentNote: 'auto-configured with smart defaults for security, performance, and reliability'
+      };
+    }
+
+    function previewConfig() {
+      try {
+        const config = buildConfig();
+        $('preview-section').classList.remove('hidden');
+        $('preview-section').classList.add('fade-in');
+        $('preview-output').textContent = JSON.stringify(config, null, 2);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function deployServer() {
+      try {
+        const config = buildConfig();
+        
+        $('deploy-status').classList.remove('hidden');
+        $('deploy-status').classList.add('fade-in');
+        $('status-message').textContent = 'submitting deployment request...';
+        $('deploy-output').textContent = '// initializing deployment pipeline...\n';
+
+        simulateDeployment(config);
+        
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function simulateDeployment(config) {
+      const steps = [
+        { delay: 500, message: 'validating configuration...', status: '✓ configuration valid' },
+        { delay: 800, message: 'building mcp server...', status: '✓ server built successfully' },
+        { delay: 1200, message: 'configuring security...', status: '✓ security policies applied' },
+        { delay: 1500, message: 'deploying to cloud...', status: '✓ deployment complete' },
+        { delay: 1800, message: 'server ready!', status: '🎉 your mcp server is live and ready to use!' }
+      ];
+
+      let stepIndex = 0;
+      const output = $('deploy-output');
+      
+      function runStep() {
+        if (stepIndex >= steps.length) return;
+        
+        const step = steps[stepIndex];
+        $('status-message').textContent = step.message;
+        
+        setTimeout(() => {
+          output.textContent += step.status + '\n';
+          stepIndex++;
+          
+          if (stepIndex < steps.length) {
+            runStep();
+          } else {
+            $('status-message').innerHTML = '<strong style="color: var(--success);">✅ Deployment Successful!</strong>';
+            output.textContent += '\n🔗 server endpoint: https://mcp-' + val('srvName') + '.your-domain.com\n';
+            output.textContent += '📚 integration docs: https://docs.your-domain.com/mcp-servers\n';
+            output.textContent += '\nℹ️  you can now connect ai agents to this mcp server using the endpoint above.';
+          }
+        }, step.delay);
+      }
+      
+      runStep();
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateProgress(1);
+    });
+  </script>
+</body>
+</html>
