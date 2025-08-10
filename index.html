@@ -453,23 +453,32 @@
           </div>
         </div>
 
-        <!-- Default Headers -->
-        <div class="field">
-          <span class="label">Default Headers (optional)</span>
-          <table class="kv" id="headersTable">
-            <thead>
-              <tr><th style="width:45%">name</th><th style="width:45%">value</th><th style="width:10%"></th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><input type="text" placeholder="accept" /></td>
-                <td><input type="text" placeholder="application/json" /></td>
-                <td><button type="button" class="btn-secondary" onclick="removeHeaderRow(this)">Remove</button></td>
-              </tr>
-            </tbody>
-          </table>
-          <button type="button" class="btn-secondary" onclick="addHeaderRow()" style="margin-top: 8px;">Add Header</button>
-          <div class="hint">applied to all requests unless overridden by specific endpoints.</div>
+        <!-- Advanced Configuration Toggle -->
+        <div style="margin-top: 20px;">
+          <button class="btn-link" onclick="toggleStep1Advanced()">
+            <span id="step1-advanced-toggle">⚙️ show advanced configuration</span>
+          </button>
+          
+          <div id="step1-advanced-settings" class="hidden" style="margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line);">
+            <!-- Default Headers -->
+            <div class="field">
+              <span class="label">Default Headers (optional)</span>
+              <table class="kv" id="headersTable">
+                <thead>
+                  <tr><th style="width:45%">name</th><th style="width:45%">value</th><th style="width:10%"></th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="text" placeholder="accept" /></td>
+                    <td><input type="text" placeholder="application/json" /></td>
+                    <td><button type="button" class="btn-secondary" onclick="removeHeaderRow(this)">Remove</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <button type="button" class="btn-secondary" onclick="addHeaderRow()" style="margin-top: 8px;">Add Header</button>
+              <div class="hint">applied to all requests unless overridden by specific endpoints.</div>
+            </div>
+          </div>
         </div>
 
         <!-- Test Connection -->
@@ -579,6 +588,18 @@
         <div id="endpoints-list" class="endpoint-list">
           <!-- endpoints will be populated here -->
         </div>
+      </div>
+
+      <!-- Endpoint Detail Configuration -->
+      <div id="endpoint-detail" class="section hidden">
+        <h2>Configure Endpoint</h2>
+        <div id="endpoint-config">
+          <!-- detailed config will be populated here -->
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+          <button class="btn-secondary" onclick="closeEndpointDetail()">Back to List</button>
+          <button class="btn" onclick="saveEndpointConfig()">Save Changes</button>
+        </div>
 
         <div class="callout hidden" id="test-results">
           <strong>Test Results:</strong>
@@ -686,6 +707,8 @@
     let endpoints = [];
     let showingAdvanced = false;
     let showingEndpointDetails = false;
+    let showingStep1Advanced = false;
+    let currentEditingEndpoint = -1;
 
     // Utility Functions
     const $ = (id) => document.getElementById(id);
@@ -742,6 +765,22 @@
         $(tab.dataset.panel).classList.add('active');
       });
     });
+
+    // Step 1: Advanced Settings Toggle
+    function toggleStep1Advanced() {
+      showingStep1Advanced = !showingStep1Advanced;
+      const settings = $('step1-advanced-settings');
+      const toggle = $('step1-advanced-toggle');
+      
+      if (showingStep1Advanced) {
+        settings.classList.remove('hidden');
+        settings.classList.add('fade-in');
+        toggle.textContent = '⚙️ hide advanced configuration';
+      } else {
+        settings.classList.add('hidden');
+        toggle.textContent = '⚙️ show advanced configuration';
+      }
+    }
 
     // Step 1: Headers Management
     function addHeaderRow() {
@@ -838,7 +877,8 @@
               method: method.toUpperCase(),
               path: path,
               description: operation.summary || operation.description || '',
-              enabled: true
+              enabled: true,
+              headers: [] // Custom headers for this endpoint
             });
           }
         });
@@ -863,7 +903,8 @@
         method: method,
         path: path,
         description: '',
-        enabled: true
+        enabled: true,
+        headers: [] // Custom headers for this endpoint
       });
       
       // Clear form
@@ -900,6 +941,7 @@
           <span class="endpoint-method method-${endpoint.method.toLowerCase()}">${endpoint.method}</span>
           <span class="endpoint-path">${endpoint.path}</span>
           <span style="flex: 1; color: var(--muted); font-size: 12px;">${endpoint.description}</span>
+          <button class="btn-secondary" onclick="configureEndpoint(${index})" style="margin-left: 8px;">Configure</button>
         `;
         list.appendChild(item);
       });
@@ -1095,6 +1137,97 @@
       }
       
       runStep();
+    }
+
+    // Step 2: Endpoint Configuration
+    function configureEndpoint(index) {
+      currentEditingEndpoint = index;
+      const endpoint = endpoints[index];
+      
+      // Hide endpoints list, show config
+      $('endpoints-section').classList.add('hidden');
+      $('endpoint-detail').classList.remove('hidden');
+      $('endpoint-detail').classList.add('fade-in');
+      
+      // Build configuration form
+      const config = $('endpoint-config');
+      config.innerHTML = `
+        <div class="field">
+          <label class="label" for="edit-name">Endpoint Name</label>
+          <input id="edit-name" type="text" value="${endpoint.name}" />
+        </div>
+        <div class="field">
+          <label class="label" for="edit-description">Description</label>
+          <input id="edit-description" type="text" value="${endpoint.description}" placeholder="what this endpoint does" />
+        </div>
+        <div class="note" style="margin: 16px 0;">
+          <strong>Path:</strong> ${endpoint.method} ${endpoint.path}
+        </div>
+        <div class="field">
+          <label class="label">Custom Headers (override defaults)</label>
+          <div class="hint" style="margin-bottom: 8px;">these headers will be added to or override the default headers from Step 1</div>
+          <table class="kv" id="endpointHeadersTable">
+            <thead>
+              <tr><th style="width:45%">name</th><th style="width:45%">value</th><th style="width:10%"></th></tr>
+            </thead>
+            <tbody>
+              ${endpoint.headers.map(header => `
+                <tr>
+                  <td><input type="text" value="${header.name}" /></td>
+                  <td><input type="text" value="${header.value}" /></td>
+                  <td><button type="button" class="btn-secondary" onclick="removeEndpointHeaderRow(this)">Remove</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <button type="button" class="btn-secondary" onclick="addEndpointHeaderRow()" style="margin-top: 8px;">Add Header</button>
+        </div>
+      `;
+    }
+
+    function closeEndpointDetail() {
+      $('endpoint-detail').classList.add('hidden');
+      $('endpoints-section').classList.remove('hidden');
+      currentEditingEndpoint = -1;
+    }
+
+    function saveEndpointConfig() {
+      if (currentEditingEndpoint >= 0) {
+        const endpoint = endpoints[currentEditingEndpoint];
+        
+        // Update basic info
+        endpoint.name = val('edit-name');
+        endpoint.description = val('edit-description');
+        
+        // Update headers
+        const headerRows = $('endpointHeadersTable').querySelectorAll('tbody tr');
+        endpoint.headers = Array.from(headerRows).map(row => {
+          const inputs = row.querySelectorAll('input');
+          return {
+            name: inputs[0].value.trim(),
+            value: inputs[1].value.trim()
+          };
+        }).filter(header => header.name); // Only keep headers with names
+        
+        // Refresh the endpoints list
+        showEndpointsList();
+        closeEndpointDetail();
+      }
+    }
+
+    function addEndpointHeaderRow() {
+      const tbody = $('endpointHeadersTable').querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" placeholder="header name" /></td>
+        <td><input type="text" placeholder="value" /></td>
+        <td><button type="button" class="btn-secondary" onclick="removeEndpointHeaderRow(this)">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function removeEndpointHeaderRow(btn) {
+      btn.closest('tr').remove();
     }
 
     // Initialize
